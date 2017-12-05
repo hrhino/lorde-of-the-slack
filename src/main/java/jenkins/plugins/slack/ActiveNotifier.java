@@ -24,11 +24,8 @@ import org.jenkinsci.plugins.displayurlapi.DisplayURLProvider;
 
 import java.io.IOException;
 import java.text.MessageFormat;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -433,7 +430,16 @@ public class ActiveNotifier implements FineGrainedNotifier {
         }
 
         public MessageBuilder appendCustomMessage() {
-            String customMessage = notifier.getCustomMessage();
+            String[] cmLines = notifier.getCustomMessage().split("\n");
+
+            // so sue me; it's late and I'm not sure if I can have java 8
+            for (int i = 0; i < cmLines.length; i++)
+                cmLines[i] = cmLines[i].replace("%n", "\n");
+
+            String selected = (cmLines.length == 0)
+                ? ""
+                : cmLines[ThreadLocalRandom.current().nextInt(cmLines.length)];
+
             EnvVars envVars = new EnvVars();
             try {
                 envVars = build.getEnvironment(new LogTaskListener(logger, INFO));
@@ -443,7 +449,7 @@ public class ActiveNotifier implements FineGrainedNotifier {
                 logger.log(SEVERE, e.getMessage(), e);
             }
             message.append("\n");
-            message.append(envVars.expand(customMessage));
+            message.append(envVars.expand(selected));
             return this;
         }
         
